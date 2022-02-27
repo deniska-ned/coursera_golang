@@ -157,19 +157,19 @@ func FastSearch(out io.Writer) {
 		panic(err)
 	}
 
-	fileScanner := bufio.NewScanner(file)
-	fileScanner.Split(bufio.ScanLines)
-
 	seenBrowsers := make(map[string]struct{}, 256)
 	uniqueBrowsers := 0
 	foundUsers := ""
 
-	for i := 0; fileScanner.Scan(); i++ {
-		line := fileScanner.Text()
+	reader := bufio.NewReader(file)
+	for i := 0; ; i++ {
+		line, err := reader.ReadSlice('\n')
+		if err != nil {
+			break
+		}
 		// fmt.Printf("%v %v\n", err, line)
 		user := userPool.Get().(*User)
-		err := user.UnmarshalJSON([]byte(line))
-		if err != nil {
+		if err = user.UnmarshalJSON(line); err != nil {
 			panic(err)
 		}
 		userPool.Put(user)
