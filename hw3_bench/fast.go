@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"strings"
+	"sync"
 
 	json "encoding/json"
 
@@ -144,6 +144,12 @@ type User struct {
 	Browsers []string
 }
 
+var userPool = sync.Pool{
+	New: func() interface{} {
+		return new(User)
+	},
+}
+
 // вам надо написать более быструю оптимальную этой функции
 func FastSearch(out io.Writer) {
 	file, err := os.Open(filePath)
@@ -154,7 +160,6 @@ func FastSearch(out io.Writer) {
 	fileScanner := bufio.NewScanner(file)
 	fileScanner.Split(bufio.ScanLines)
 
-	r := regexp.MustCompile("@")
 	seenBrowsers := make(map[string]struct{}, 256)
 	uniqueBrowsers := 0
 	foundUsers := ""
@@ -162,11 +167,12 @@ func FastSearch(out io.Writer) {
 	for i := 0; fileScanner.Scan(); i++ {
 		line := fileScanner.Text()
 		// fmt.Printf("%v %v\n", err, line)
-		user := User{}
+		user := userPool.Get().(*User)
 		err := user.UnmarshalJSON([]byte(line))
 		if err != nil {
 			panic(err)
 		}
+		userPool.Put(user)
 
 		isAndroid := false
 		isMSIE := false
@@ -202,7 +208,7 @@ func FastSearch(out io.Writer) {
 		}
 
 		// log.Println("Android and MSIE user:", user["name"], user["email"])
-		email := r.ReplaceAllString(user.Email, " [at] ")
+		email := strings.Join(strings.Split(user.Email, "@"), " [at] ")
 		foundUsers += fmt.Sprintf("[%d] %s <%s>\n", i, user.Name, email)
 	}
 
