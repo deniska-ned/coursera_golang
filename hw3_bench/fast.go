@@ -27,7 +27,7 @@ func FastSearch(out io.Writer) {
 	fileScanner.Split(bufio.ScanLines)
 
 	r := regexp.MustCompile("@")
-	seenBrowsers := []string{}
+	seenBrowsers := make(map[string]struct{}, 256)
 	uniqueBrowsers := 0
 	foundUsers := ""
 
@@ -46,15 +46,11 @@ func FastSearch(out io.Writer) {
 		for _, browser := range user.Browsers {
 			if strings.Contains(browser, "Android") {
 				isAndroid = true
-				notSeenBefore := true
-				for _, item := range seenBrowsers {
-					if item == browser {
-						notSeenBefore = false
-					}
-				}
-				if notSeenBefore {
+				_, seenBefore := seenBrowsers[browser]
+
+				if !seenBefore {
 					// log.Printf("SLOW New browser: %s, first seen: %s", browser, user["name"])
-					seenBrowsers = append(seenBrowsers, browser)
+					seenBrowsers[browser] = struct{}{}
 					uniqueBrowsers++
 				}
 			}
@@ -63,15 +59,11 @@ func FastSearch(out io.Writer) {
 		for _, browser := range user.Browsers {
 			if strings.Contains(browser, "MSIE") {
 				isMSIE = true
-				notSeenBefore := true
-				for _, item := range seenBrowsers {
-					if item == browser {
-						notSeenBefore = false
-					}
-				}
-				if notSeenBefore {
+				_, seenBefore := seenBrowsers[browser]
+
+				if !seenBefore {
 					// log.Printf("SLOW New browser: %s, first seen: %s", browser, user["name"])
-					seenBrowsers = append(seenBrowsers, browser)
+					seenBrowsers[browser] = struct{}{}
 					uniqueBrowsers++
 				}
 			}
